@@ -1,3 +1,4 @@
+#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include <stdio.h>
 #include <string.h>
 
@@ -9,7 +10,10 @@
 
 #include "u8g2_esp32_hal.h"
 
-
+#ifdef KaRadio32
+#include "gpio.h"
+#include "vs1053.h"
+#endif
 static const char *TAG = "u8g2_hal";
 static const unsigned int I2C_TIMEOUT_MS = 1000;
 
@@ -32,7 +36,9 @@ void u8g2_esp32_hal_init(u8g2_esp32_hal_t u8g2_esp32_hal_param) {
  * to handle SPI communications.
  */
 uint8_t u8g2_esp32_spi_byte_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
-	ESP_LOGD(TAG, "spi_byte_cb: Received a msg: %d, arg_int: %d, arg_ptr: %p", msg, arg_int, arg_ptr);
+//	ESP_LOGD(TAG, "spi_byte_cb: Received a msg: %d, arg_int: %d, arg_ptr: %p", msg, arg_int, arg_ptr);
+ //   if ((modulo++ % MODULO)==0)
+		taskYIELD(); // some delay to let the vs1053 play
 	switch(msg) {
 		case U8X8_MSG_BYTE_SET_DC:
 			if (u8g2_esp32_hal.dc != U8G2_ESP32_HAL_UNDEFINED) {
@@ -54,7 +60,7 @@ uint8_t u8g2_esp32_spi_byte_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void 
 		  bus_config.quadwp_io_num = -1; // Not used
 		  bus_config.quadhd_io_num = -1; // Not used
 		  //ESP_LOGI(TAG, "... Initializing bus.");
-		  ESP_ERROR_CHECK(spi_bus_initialize(HSPI_HOST, &bus_config, 1));
+		  ESP_ERROR_CHECK(spi_bus_initialize(KSPI, &bus_config, 1));
 #endif
 		  spi_device_interface_config_t dev_config;
 		  dev_config.address_bits     = 0;
@@ -64,14 +70,14 @@ uint8_t u8g2_esp32_spi_byte_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void 
 		  dev_config.duty_cycle_pos   = 0;
 		  dev_config.cs_ena_posttrans = 0;
 		  dev_config.cs_ena_pretrans  = 0;
-		  dev_config.clock_speed_hz   = 500000;
+		  dev_config.clock_speed_hz   = 1000000;
 		  dev_config.spics_io_num     = u8g2_esp32_hal.cs;
-		  dev_config.flags            = u8x8->display_info->chip_enable_level ?SPI_DEVICE_POSITIVE_CS : 0; // ST7920.
+		  dev_config.flags            = (u8x8->display_info->chip_enable_level ?SPI_DEVICE_POSITIVE_CS : 0)|SPI_DEVICE_NO_DUMMY; // ST7920.
 		  dev_config.queue_size       = 2;
 		  dev_config.pre_cb           = NULL;
 		  dev_config.post_cb          = NULL;
 		  //ESP_LOGI(TAG, "... Adding device bus.");
-		  ESP_ERROR_CHECK(spi_bus_add_device(HSPI_HOST, &dev_config, &handle_spi));
+		  ESP_ERROR_CHECK(spi_bus_add_device(KSPI, &dev_config, &handle_spi));
 
 		  break;
 		}
@@ -105,8 +111,9 @@ uint8_t u8g2_esp32_spi_byte_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void 
  * to handle I2C communications.
  */
 uint8_t u8g2_esp32_i2c_byte_cb(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
-	ESP_LOGD(TAG, "i2c_cb: Received a msg: %d, arg_int: %d, arg_ptr: %p", msg, arg_int, arg_ptr);
+//	ESP_LOGD(TAG, "i2c_cb: Received a msg: %d, arg_int: %d, arg_ptr: %p", msg, arg_int, arg_ptr);
 
+	
 	switch(msg) {
 		case U8X8_MSG_BYTE_SET_DC: {
 			if (u8g2_esp32_hal.dc != U8G2_ESP32_HAL_UNDEFINED) {

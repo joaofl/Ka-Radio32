@@ -61,7 +61,8 @@ IRAM_ATTR void sendOneByte()
 {
 	int nb = oneByte.nb;
 	oneByte.nb = 0;	
-
+	
+	
 	if (nb != 0)
 	{
 		spi_transaction_t trans_desc;
@@ -90,6 +91,7 @@ IRAM_ATTR void addOneByte(uint8_t bt)
 IRAM_ATTR int16_t ucg_com_hal(ucg_t *ucg, int16_t msg, uint16_t arg, uint8_t *data)
 {
 //  taskYIELD();
+
   switch(msg)
   {
     case UCG_COM_MSG_POWER_UP: {
@@ -123,7 +125,7 @@ IRAM_ATTR int16_t ucg_com_hal(ucg_t *ucg, int16_t msg, uint16_t arg, uint8_t *da
 		  bus_config.quadwp_io_num = -1; // Not used
 		  bus_config.quadhd_io_num = -1; // Not used
 //done for vs1053
-		  ESP_ERROR_CHECK(spi_bus_initialize(HSPI_HOST, &bus_config, 1));
+		  ESP_ERROR_CHECK(spi_bus_initialize(KSPI, &bus_config, 1));
 #endif		
 		
 		gpio_config_t gpioConfig;
@@ -148,12 +150,12 @@ IRAM_ATTR int16_t ucg_com_hal(ucg_t *ucg, int16_t msg, uint16_t arg, uint8_t *da
 		dev_config.cs_ena_pretrans  = 0;
 		dev_config.clock_speed_hz   = (1000000000/((ucg_com_info_t *)data)->serial_clk_speed) ;
 		dev_config.spics_io_num     = ucg_esp32_hal.cs;
-		dev_config.flags            = 0;
+		dev_config.flags            = SPI_DEVICE_NO_DUMMY;
 		dev_config.queue_size       = 2;//200;
 		dev_config.pre_cb           = NULL;
 		dev_config.post_cb          = NULL;
-		//ESP_LOGI(tag, "... Adding device bus.");
-		ESP_ERROR_CHECK(spi_bus_add_device(HSPI_HOST, &dev_config, &handle)); 
+		ESP_LOGI(TAG, "... Adding device bus  Speed= %d.",dev_config.clock_speed_hz);
+		ESP_ERROR_CHECK(spi_bus_add_device(KSPI, &dev_config, &handle)); 
 	}
 		break;
 
